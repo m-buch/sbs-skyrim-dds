@@ -1,0 +1,14 @@
+{
+  "_comment": "Slot Table (CK slots 0-7). Diffuse: format = no alpha, format_alpha = alpha blended (BC7), format_alpha_test = alpha tested (BC1)",
+  "slots": {
+    "diffuse":     { "suffixes": ["", "_d"], "format": "BC1", "format_alpha": "BC7", "format_alpha_test": "BC1a", "color_space": "srgb", "alpha": "standard", "alpha_test": false },
+    "normal":      { "suffixes": ["_n"],     "format": "BC7", "color_space": "linear", "alpha": "encoded",  "alpha_test": false },
+    "glow":        { "suffixes": ["_g"],     "format": "BC1", "color_space": "srgb",   "alpha": "none",     "alpha_test": false },
+    "parallax":    { "suffixes": ["_p"],     "format": "BC4", "color_space": "linear", "alpha": "none",     "alpha_test": false },
+    "environment": { "suffixes": ["_e"],     "format": "BC1", "color_space": "srgb",   "alpha": "none",     "alpha_test": false },
+    "envmask":     { "suffixes": ["_m"],     "format": "BC4", "color_space": "linear", "alpha": "none",     "alpha_test": false },
+    "multilayer":  { "suffixes": ["_i"],     "format": "BC7", "color_space": "srgb",   "alpha": "standard", "alpha_test": false },
+    "backlight":   { "suffixes": ["_b"],     "format": "BC1", "color_space": "linear", "alpha": "none",     "alpha_test": false },
+    "msn":         { "suffixes": ["_msn"],   "format": "BC7", "color_space": "linear", "alpha": "none",     "alpha_test": false }
+  }
+}

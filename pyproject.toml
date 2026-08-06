@@ -1,0 +1,22 @@
+[project]
+name = "skyrim-dds-export"
+version = "0.1.0"
+description = "Substance Designer plugin: one-button Skyrim SE DDS export via skydds"
+requires-python = ">=3.9"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "pytest>=8",
+]
+
+[tool.ruff]
+# Designer uses Python 3.9
+target-version = "py39"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
