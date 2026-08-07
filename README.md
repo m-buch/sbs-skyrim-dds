@@ -1,4 +1,4 @@
-# sbsdesigner-skyrim-dds
+# SkyDDS
 
 One-button export from Substance 3D Designer to properly formatted DDS files for Skyrim SE.
 
