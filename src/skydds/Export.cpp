@@ -22,10 +22,11 @@ unsigned int nextPow2(unsigned int v)
 	return result;
 }
 
-ExportResult failure(std::string error)
+ExportResult failure(std::string error, bool usageError = false)
 {
 	ExportResult result;
 	result.error = std::move(error);
+	result.usageError = usageError;
 	return result;
 }
 
@@ -33,66 +34,24 @@ ExportResult failure(std::string error)
 
 ExportResult exportTexture(const ExportRequest& request)
 {
-	if (!request.slot)
-		return failure("no slot given");
-	const Slot& slot = *request.slot;
-	if (!slot.supported)
-		return failure(std::string("slot '") + slot.name + "' is not implemented yet");
-	if (request.alphaMode != AlphaMode::Auto && !slot.hasAlphaVariants)
-	{
-		return failure(std::string("slot '") + slot.name + "' has a fixed format; the alpha"
-			" mode only applies to slots with alpha variants");
-	}
-
 	ImageRGBA image = loadImage(request.inputPath);
 	if (!image.isValid())
 		return failure("failed to load '" + request.inputPath + "'");
 
+	bool alphaWeighted = request.alphaKind == AlphaKind::Standard;
 	if (request.resizePow2)
 	{
 		unsigned int width = nextPow2(image.width);
 		unsigned int height = nextPow2(image.height);
 		if (width != image.width || height != image.height)
 		{
-			image = resizeImage(image, width, height, slot.srgb,
-				slot.alphaKind == AlphaKind::Standard);
+			image = resizeImage(image, width, height, request.srgb, alphaWeighted);
 			if (!image.isValid())
 				return failure("failed to resize image");
 		}
 	}
 
 	ExportResult result;
-	result.format = slot.format;
-	switch (request.alphaMode)
-	{
-		case AlphaMode::None:
-			break;
-		case AlphaMode::Blend:
-			result.format = slot.formatAlpha;
-			break;
-		case AlphaMode::Test:
-			result.format = slot.formatAlphaTest;
-			break;
-		case AlphaMode::Auto:
-			if (slot.hasAlphaVariants)
-			{
-				result.alphaScanned = true;
-				for (std::size_t i = 3; i < image.pixels.size(); i += 4)
-				{
-					std::uint8_t alpha = image.pixels[i];
-					if (alpha < 255)
-					{
-						++result.nonOpaqueTexels;
-						if (alpha < result.minAlpha)
-							result.minAlpha = alpha;
-					}
-				}
-				if (result.nonOpaqueTexels > 0)
-					result.format = slot.formatAlpha;
-			}
-			break;
-	}
-
 	result.width = image.width;
 	result.height = image.height;
 	result.mipLevels = mipLevelCount(image.width, image.height);
@@ -102,9 +61,9 @@ ExportResult exportTexture(const ExportRequest& request)
 		return result;
 	}
 
-	bool alphaWeighted = slot.alphaKind == AlphaKind::Standard && formatHasAlpha(result.format);
+	alphaWeighted = alphaWeighted && formatHasAlpha(request.format);
 	std::vector<ImageRGBA> chain =
-		buildMipChain(std::move(image), result.mipLevels, slot.srgb, alphaWeighted);
+		buildMipChain(std::move(image), result.mipLevels, request.srgb, alphaWeighted);
 	std::vector<EncodedLevel> levels;
 	levels.reserve(chain.size());
 	for (const ImageRGBA& mip : chain)
@@ -114,11 +73,11 @@ ExportResult exportTexture(const ExportRequest& request)
 		EncodedLevel level;
 		level.width = mip.width;
 		level.height = mip.height;
-		level.blocks = encodeImage(mip, result.format, slot.srgb, request.threads);
+		level.blocks = encodeImage(mip, request.format, request.srgb, request.threads);
 		levels.push_back(std::move(level));
 	}
 
-	if (!writeDds(request.outputPath, result.format, levels))
+	if (!writeDds(request.outputPath, request.format, levels))
 		return failure("failed to write '" + request.outputPath + "'");
 
 	result.success = true;

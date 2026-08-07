@@ -74,15 +74,14 @@ def gather_outputs(graph):
 class ExportItem:
     """One output selected for export in the dialog."""
 
-    def __init__(self, output, slot, file_name):
+    def __init__(self, output, preset, file_name):
         self.output = output
-        self.slot = slot
+        self.preset = preset
         self.file_name = file_name  # final .dds name, no directory
 
 
-def export_items(graph, items, skydds_path, output_dir, alpha_mode, progress=None):
-    """Computes the graph and exports each item. Returns a list of OutputResult.
-    """
+def export_items(graph, items, skydds_path, output_dir, progress=None):
+    """Computes the graph and exports each item. Returns a list of OutputResult."""
     if not skydds_path or not os.path.isfile(skydds_path):
         raise ExportError("skydds.exe not found — set its path on the Settings tab")
     if not output_dir:
@@ -108,9 +107,19 @@ def export_items(graph, items, skydds_path, output_dir, alpha_mode, progress=Non
             texture.save(png)
 
             dds = os.path.join(output_dir, item.file_name)
-            command = [skydds_path, "--in", png, "--out", dds, "--slot", item.slot]
-            if item.slot == "diffuse" and alpha_mode != "auto":
-                command += ["--alpha-mode", alpha_mode]
+            command = [
+                skydds_path,
+                "--in",
+                png,
+                "--out",
+                dds,
+                "--format",
+                item.preset["format"],
+                "--colorspace",
+                item.preset["colorspace"],
+                "--alpha",
+                item.preset["alpha"],
+            ]
 
             creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
             proc = subprocess.run(

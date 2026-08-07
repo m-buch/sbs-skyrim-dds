@@ -13,6 +13,13 @@ enum class BlockFormat
 	BC7
 };
 
+enum class AlphaKind
+{
+	None,     // no alpha
+	Standard, // transparency
+	Encoded   // data packed (f.e. specularity)
+};
+
 inline unsigned int blockBytes(BlockFormat format)
 {
 	return format == BlockFormat::BC7 ? 16 : 8;

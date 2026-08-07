@@ -5,9 +5,8 @@ import json
 import os
 import shutil
 
+from . import presets
 from .qt import QtCore
-
-ALPHA_MODES = ["auto", "none", "blend", "test"]
 
 
 def bundled_skydds():
@@ -44,30 +43,44 @@ class Settings:
     def resolved_skydds(self):
         return resolve_skydds(self.skydds_path)
 
-    @property
-    def suffix_overrides(self):
-        """Global {slot: suffix} overrides. Slots absent here use slots.json."""
-        raw = self._store.value("suffix_overrides", "")
+    def _stored_list(self, key):
+        raw = self._store.value(key, "")
         if not raw:
-            return {}
+            return []
         try:
-            overrides = json.loads(raw)
+            stored = json.loads(raw)
         except ValueError:
-            return {}
-        return overrides if isinstance(overrides, dict) else {}
+            return []
+        return stored if isinstance(stored, list) else []
 
-    @suffix_overrides.setter
-    def suffix_overrides(self, overrides):
-        self._store.setValue("suffix_overrides", json.dumps(overrides))
+    @property
+    def default_presets(self):
+        edits = {preset.get("name"): preset for preset in self._stored_list("default_presets")}
+        merged = []
+        for preset in presets.default_presets():
+            merged.append(edits.get(preset["name"], preset))
+        return presets.normalize_all(merged)
+
+    @default_presets.setter
+    def default_presets(self, value):
+        self._store.setValue("default_presets", json.dumps(presets.normalize_all(value)))
         self._store.sync()
 
-    def suffix_for(self, slot, defaults):
-        """Suffix for a slot: the global override if set, else the default.
-        An override of "" is meaningful (diffuse has no suffix by default)."""
-        overrides = self.suffix_overrides
-        if slot in overrides:
-            return overrides[slot]
-        return defaults.get(slot, "")
+    def reset_default_presets(self):
+        self._store.remove("default_presets")
+        self._store.sync()
+
+    @property
+    def user_presets(self):
+        return presets.normalize_all(self._stored_list("user_presets"))
+
+    @user_presets.setter
+    def user_presets(self, value):
+        self._store.setValue("user_presets", json.dumps(presets.normalize_all(value)))
+        self._store.sync()
+
+    def all_presets(self):
+        return presets.normalize_all(self.default_presets + self.user_presets)
 
     @staticmethod
     def _graph_key(graph_id):
@@ -75,8 +88,7 @@ class Settings:
         return "graphs/" + digest
 
     def graph_state(self, graph_id):
-        """Stored dialog state for a graph: output_dir, filename, alpha_mode,
-        outputs {name: {enabled, slot}}. Empty dict if never exported."""
+        """Stored dialog state for a graph."""
         raw = self._store.value(self._graph_key(graph_id), "")
         if not raw:
             return {}

@@ -132,12 +132,7 @@ def _export_graph(graph):
 
         try:
             results = exporter.export_items(
-                graph,
-                items,
-                dialog.skydds_path,
-                dialog.output_dir,
-                dialog.alpha_mode,
-                progress,
+                graph, items, dialog.skydds_path, dialog.output_dir, progress
             )
         finally:
             bar.close()

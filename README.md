@@ -11,14 +11,18 @@ Tools -> Plugin Manager. `skydds.exe` is included inside the plugin folder.
 ## Usage
 <img width="333" height="117" alt="image" src="https://github.com/user-attachments/assets/2d7632af-6785-452f-8cf9-95cd211036dc" />
 <br>
-<img width="579" height="404" alt="image" src="https://github.com/user-attachments/assets/be27ef20-9ba2-499d-bea5-ab161b0b9247" />
+<img width="776" height="398" alt="image" src="https://github.com/user-attachments/assets/0d0b20fd-4e51-4192-9ee7-ab14e1303928" />
+<br>
+<img width="778" height="749" alt="image" src="https://github.com/user-attachments/assets/a67198e8-25d8-4841-9829-5aac407b2f85" />
 
-Select a graph in the Explorer and click **SkyDDS** on the Explorer toolbar (or press
+
+
+Select a graph in the Explorer and click **the Skyrim icon** on the Explorer toolbar (or press
 Ctrl+Shift+D to export the current graph), assign outputs to the proper slots, set the output
 directory, and export.
 
-Output settings are saved per-graph. The Settings tab only matters if you want to point the plugin
-at a different skydds.exe than the bundled one (for developers).
+Output settings are saved per-graph. The Settings tab can be used to change default export settings globally and to create
+user-defined presets.
 
 ## Packaging a release
 

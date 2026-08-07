@@ -11,10 +11,11 @@ struct Options
 {
 	std::string in;
 	std::string out;
-	std::string slot;
 	std::string game = "se";
 	unsigned int jobs = 0; // 0 = all cores
-	AlphaMode alphaMode = AlphaMode::Auto;
+	BlockFormat format = BlockFormat::BC7;
+	bool srgb = false;
+	AlphaKind alphaKind = AlphaKind::None;
 	bool resizePow2 = false;
 	bool dryRun = false;
 	bool verbose = false;

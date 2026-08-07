@@ -71,91 +71,138 @@ def images(tmp_path_factory):
     return root
 
 
-def convert(images, tmp_path, src, slot, *extra):
+def convert(images, tmp_path, src, fmt, colorspace, alpha, *extra):
+    """Runs a conversion."""
     out = tmp_path / "out.dds"
-    result = run("--in", str(images / src), "--out", str(out), "--slot", slot, *extra)
+    result = run(
+        "--in",
+        str(images / src),
+        "--out",
+        str(out),
+        "--format",
+        fmt,
+        "--colorspace",
+        colorspace,
+        "--alpha",
+        alpha,
+        *extra,
+    )
     assert result.returncode == 0, result.stderr
     return dds_header(out)
 
 
-def test_normal_bc7_unorm_spec_alpha(images, tmp_path):
-    header = convert(images, tmp_path, "translucent.png", "normal")
+def test_normal_map_settings(images, tmp_path):
+    header = convert(images, tmp_path, "translucent.png", "bc7", "linear", "encoded")
     assert header["fourcc"] == b"DX10"
     assert header["dxgi"] == DXGI_BC7_UNORM
-    assert header["mips"] == 10  # full chain to 1x1
+    assert header["mips"] == 10
     assert header["misc_flags2"] & 0x7 == 0  # alpha mode Unknown like vanilla
 
 
-def test_diffuse_opaque_picks_bc1(images, tmp_path):
-    header = convert(images, tmp_path, "opaque.png", "diffuse")
+def test_diffuse_settings(images, tmp_path):
+    header = convert(images, tmp_path, "opaque.png", "bc1", "srgb", "standard")
     assert header["dxgi"] == DXGI_BC1_UNORM
 
 
-def test_diffuse_translucent_picks_bc7(images, tmp_path):
-    header = convert(images, tmp_path, "translucent.png", "diffuse")
-    assert header["dxgi"] == DXGI_BC7_UNORM
+def test_format_is_never_inferred_from_alpha(images, tmp_path):
+    header = convert(images, tmp_path, "translucent.png", "bc1", "srgb", "standard")
+    assert header["dxgi"] == DXGI_BC1_UNORM
 
 
-def test_diffuse_alpha_mode_test_picks_bc1a(images, tmp_path):
-    header = convert(images, tmp_path, "translucent.png", "diffuse", "--alpha-mode", "test")
+def test_bc1a_punchthrough(images, tmp_path):
+    header = convert(images, tmp_path, "translucent.png", "bc1a", "srgb", "standard")
     assert header["dxgi"] == DXGI_BC1_UNORM  # BC1a shares the BC1_UNORM tag
 
 
-def test_diffuse_alpha_mode_none_forces_bc1(images, tmp_path):
-    header = convert(images, tmp_path, "translucent.png", "diffuse", "--alpha-mode", "none")
-    assert header["dxgi"] == DXGI_BC1_UNORM
-
-
-def test_diffuse_alpha_mode_blend_forces_bc7(images, tmp_path):
-    header = convert(images, tmp_path, "opaque.png", "diffuse", "--alpha-mode", "blend")
-    assert header["dxgi"] == DXGI_BC7_UNORM
-
-
-def test_diffuse_auto_alpha_prints_notice(images, tmp_path):
-    out = tmp_path / "out.dds"
-    result = run("--in", str(images / "translucent.png"), "--out", str(out), "--slot", "diffuse")
-    assert result.returncode == 0, result.stderr
-    assert "alpha content detected" in result.stderr
-
-
-def test_parallax_bc4(images, tmp_path):
-    header = convert(images, tmp_path, "gray.png", "parallax")
+def test_bc4_single_channel(images, tmp_path):
+    header = convert(images, tmp_path, "gray.png", "bc4", "linear", "none")
     assert header["dxgi"] == DXGI_BC4_UNORM
     assert header["mips"] == 9
 
 
 def test_resize_pow2(images, tmp_path):
-    header = convert(images, tmp_path, "npot.png", "diffuse", "--resize", "pow2")
+    header = convert(images, tmp_path, "npot.png", "bc1", "srgb", "standard", "--resize", "pow2")
     assert (header["width"], header["height"]) == (512, 512)
 
 
 def test_dry_run_writes_nothing(images, tmp_path):
     out = tmp_path / "out.dds"
     result = run(
-        "--in", str(images / "opaque.png"), "--out", str(out), "--slot", "diffuse", "--dry-run"
+        "--in",
+        str(images / "opaque.png"),
+        "--out",
+        str(out),
+        "--format",
+        "bc1",
+        "--colorspace",
+        "srgb",
+        "--alpha",
+        "standard",
+        "--dry-run",
     )
     assert result.returncode == 0, result.stderr
     assert "BC1" in result.stdout
     assert not out.exists()
 
 
-def test_unknown_slot_fails(images, tmp_path):
-    result = run(
-        "--in", str(images / "opaque.png"), "--out", str(tmp_path / "out.dds"), "--slot", "specular"
-    )
-    assert result.returncode == 2
-    assert "unknown slot" in result.stderr
-
-
-def test_normal_rejects_alpha_mode(images, tmp_path):
+def test_dry_run_reports_resolved_settings(images, tmp_path):
+    out = tmp_path / "out.dds"
     result = run(
         "--in",
         str(images / "translucent.png"),
         "--out",
+        str(out),
+        "--format",
+        "bc7",
+        "--colorspace",
+        "linear",
+        "--alpha",
+        "encoded",
+        "--dry-run",
+    )
+    assert result.returncode == 0, result.stderr
+    assert "linear" in result.stdout
+    assert "encoded" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "missing",
+    [
+        ("--colorspace", "srgb", "--alpha", "standard"),
+        ("--format", "bc1", "--alpha", "standard"),
+        ("--format", "bc1", "--colorspace", "srgb"),
+    ],
+)
+def test_each_encoding_flag_is_required(images, tmp_path, missing):
+    result = run("--in", str(images / "opaque.png"), "--out", str(tmp_path / "out.dds"), *missing)
+    assert result.returncode == 2
+    assert "is required" in result.stderr
+
+
+def test_bad_format_value_fails(images, tmp_path):
+    result = run(
+        "--in",
+        str(images / "opaque.png"),
+        "--out",
         str(tmp_path / "out.dds"),
-        "--slot",
-        "normal",
-        "--alpha-mode",
-        "test",
+        "--format",
+        "astc",
+        "--colorspace",
+        "srgb",
+        "--alpha",
+        "none",
     )
     assert result.returncode == 2
+
+
+def test_slot_flag_is_gone(images, tmp_path):
+    result = run(
+        "--in",
+        str(images / "opaque.png"),
+        "--out",
+        str(tmp_path / "out.dds"),
+        "--slot",
+        "diffuse",
+    )
+    assert result.returncode == 2
+    assert "unknown argument" in result.stderr
