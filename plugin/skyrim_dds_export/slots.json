@@ -1,14 +1,14 @@
 {
-  "_comment": "Slot Table (CK slots 0-7). Diffuse: format = no alpha (BC1), format_alpha = alpha blended (BC7), format_alpha_test = alpha tested (BC1a)",
-  "slots": {
-    "diffuse":     { "suffixes": ["", "_d"], "format": "BC1", "format_alpha": "BC7", "format_alpha_test": "BC1a", "color_space": "srgb", "alpha": "standard", "alpha_test": false },
-    "normal":      { "suffixes": ["_n"],     "format": "BC7", "color_space": "linear", "alpha": "encoded",  "alpha_test": false },
-    "glow":        { "suffixes": ["_g"],     "format": "BC1", "color_space": "srgb",   "alpha": "none",     "alpha_test": false },
-    "parallax":    { "suffixes": ["_p"],     "format": "BC4", "color_space": "linear", "alpha": "none",     "alpha_test": false },
-    "environment": { "suffixes": ["_e"],     "format": "BC1", "color_space": "srgb",   "alpha": "none",     "alpha_test": false },
-    "envmask":     { "suffixes": ["_m"],     "format": "BC4", "color_space": "linear", "alpha": "none",     "alpha_test": false },
-    "multilayer":  { "suffixes": ["_i"],     "format": "BC7", "color_space": "srgb",   "alpha": "standard", "alpha_test": false },
-    "backlight":   { "suffixes": ["_b"],     "format": "BC1", "color_space": "linear", "alpha": "none",     "alpha_test": false },
-    "msn":         { "suffixes": ["_msn"],   "format": "BC7", "color_space": "linear", "alpha": "none",     "alpha_test": false }
-  }
+  "_comment": "Default presets (CK slots 0-7 plus msn). Users can edit these and add their own in the plugin's Settings tab.",
+  "presets": [
+    { "name": "diffuse",     "suffix": "",     "format": "bc1", "colorspace": "srgb",   "alpha": "standard" },
+    { "name": "normal",      "suffix": "_n",   "format": "bc7", "colorspace": "linear", "alpha": "encoded" },
+    { "name": "glow",        "suffix": "_g",   "format": "bc1", "colorspace": "srgb",   "alpha": "none" },
+    { "name": "parallax",    "suffix": "_p",   "format": "bc4", "colorspace": "linear", "alpha": "none" },
+    { "name": "environment", "suffix": "_e",   "format": "bc1", "colorspace": "srgb",   "alpha": "none" },
+    { "name": "envmask",     "suffix": "_m",   "format": "bc4", "colorspace": "linear", "alpha": "none" },
+    { "name": "multilayer",  "suffix": "_i",   "format": "bc7", "colorspace": "srgb",   "alpha": "standard" },
+    { "name": "backlight",   "suffix": "_b",   "format": "bc1", "colorspace": "linear", "alpha": "none" },
+    { "name": "msn",         "suffix": "_msn", "format": "bc7", "colorspace": "linear", "alpha": "none" }
+  ]
 }
