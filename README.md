@@ -2,6 +2,19 @@
 
 One-button export from Substance 3D Designer to properly formatted DDS files for Skyrim SE.
 
+## Installation
+
+Copy the skyrim_dds_export plugin to your ```Documents\Adobe\Adobe Substance 3D Designer\python\sduserplugins``` directory,
+or to wherever else your sduserplugins are located. Make sure the plugin is enabled in the Tools -> Plugin Manager.
+
+## Usage
+<img width="558" height="359" alt="image" src="https://github.com/user-attachments/assets/bfa02257-34e5-4057-82e0-741fedb0a614" />
+
+Click the cogwheel next to SkyDDS on your toolbar to set the skydds executable location.
+When ready to export, click SkyDDS, assign outputs to the proper slots, set output directory, and export.
+
+Output settings are saved per-graph.
+
 ## Layout
 
 - `src/skydds/` — `skydds_core`: image loading (stb_image), mip
