@@ -1,6 +1,5 @@
 """Export selected output nodes of a graph to Skyrim DDS via the skydds CLI."""
 
-import json
 import os
 import shutil
 import subprocess
@@ -31,22 +30,6 @@ class OutputResult:
         self.name = name
         self.ok = ok
         self.message = message
-
-
-def _slots_data():
-    path = os.path.join(os.path.dirname(__file__), "slots.json")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)["slots"]
-
-
-def slot_names():
-    return list(_slots_data().keys())
-
-
-def canonical_suffix(slot):
-    """The suffix appended to the base filename for a slot (diffuse: none)."""
-    suffixes = _slots_data()[slot]["suffixes"]
-    return suffixes[0] if suffixes else ""
 
 
 def _output_name(node):
