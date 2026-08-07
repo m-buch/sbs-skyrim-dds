@@ -44,6 +44,31 @@ class Settings:
     def resolved_skydds(self):
         return resolve_skydds(self.skydds_path)
 
+    @property
+    def suffix_overrides(self):
+        """Global {slot: suffix} overrides. Slots absent here use slots.json."""
+        raw = self._store.value("suffix_overrides", "")
+        if not raw:
+            return {}
+        try:
+            overrides = json.loads(raw)
+        except ValueError:
+            return {}
+        return overrides if isinstance(overrides, dict) else {}
+
+    @suffix_overrides.setter
+    def suffix_overrides(self, overrides):
+        self._store.setValue("suffix_overrides", json.dumps(overrides))
+        self._store.sync()
+
+    def suffix_for(self, slot, defaults):
+        """Suffix for a slot: the global override if set, else the default.
+        An override of "" is meaningful (diffuse has no suffix by default)."""
+        overrides = self.suffix_overrides
+        if slot in overrides:
+            return overrides[slot]
+        return defaults.get(slot, "")
+
     @staticmethod
     def _graph_key(graph_id):
         digest = hashlib.md5(graph_id.encode("utf-8")).hexdigest()
