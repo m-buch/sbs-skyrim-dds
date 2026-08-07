@@ -9,7 +9,9 @@ directory, or wherever else your sduserplugins are located. Make sure the plugin
 Tools -> Plugin Manager. `skydds.exe` is included inside the plugin folder.
 
 ## Usage
-<img width="558" height="359" alt="image" src="https://github.com/user-attachments/assets/bfa02257-34e5-4057-82e0-741fedb0a614" />
+<img width="333" height="117" alt="image" src="https://github.com/user-attachments/assets/2d7632af-6785-452f-8cf9-95cd211036dc" />
+<br>
+<img width="579" height="404" alt="image" src="https://github.com/user-attachments/assets/be27ef20-9ba2-499d-bea5-ab161b0b9247" />
 
 Select a graph in the Explorer and click **SkyDDS** on the Explorer toolbar (or press
 Ctrl+Shift+D to export the current graph), assign outputs to the proper slots, set the output
