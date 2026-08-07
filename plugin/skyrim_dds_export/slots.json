@@ -1,5 +1,5 @@
 {
-  "_comment": "Slot Table (CK slots 0-7). Diffuse: format = no alpha, format_alpha = alpha blended (BC7), format_alpha_test = alpha tested (BC1)",
+  "_comment": "Slot Table (CK slots 0-7). Diffuse: format = no alpha (BC1), format_alpha = alpha blended (BC7), format_alpha_test = alpha tested (BC1a)",
   "slots": {
     "diffuse":     { "suffixes": ["", "_d"], "format": "BC1", "format_alpha": "BC7", "format_alpha_test": "BC1a", "color_space": "srgb", "alpha": "standard", "alpha_test": false },
     "normal":      { "suffixes": ["_n"],     "format": "BC7", "color_space": "linear", "alpha": "encoded",  "alpha_test": false },

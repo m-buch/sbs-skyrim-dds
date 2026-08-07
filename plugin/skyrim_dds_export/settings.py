@@ -1,2 +1,1 @@
-"""QSettings plugin settings.
-"""
+"""QSettings plugin settings."""

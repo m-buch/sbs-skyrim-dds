@@ -1,15 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
 project(sbsdesigner-skyrim-dds LANGUAGES CXX)
 
-set(CUTTLEFISH_SHARED OFF CACHE BOOL "" FORCE)
-set(CUTTLEFISH_BUILD_TOOL OFF CACHE BOOL "" FORCE)
-set(CUTTLEFISH_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(CUTTLEFISH_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(CUTTLEFISH_BUILD_ETC OFF CACHE BOOL "" FORCE)
-set(CUTTLEFISH_BUILD_ASTC OFF CACHE BOOL "" FORCE)
-set(CUTTLEFISH_BUILD_PVRTC OFF CACHE BOOL "" FORCE)
-set(CUTTLEFISH_INSTALL OFF CACHE BOOL "" FORCE)
-# no ISPC for now
-
-add_subdirectory(external/Cuttlefish)
+add_subdirectory(src/skydds)
 add_subdirectory(tools/skydds)

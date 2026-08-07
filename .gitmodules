@@ -1,3 +1,6 @@
-[submodule "external/Cuttlefish"]
-	path = external/Cuttlefish
-	url = https://github.com/akb825/Cuttlefish
+[submodule "external/bc7enc_rdo"]
+	path = external/bc7enc_rdo
+	url = https://github.com/richgel999/bc7enc_rdo
+[submodule "external/stb"]
+	path = external/stb
+	url = https://github.com/nothings/stb
