@@ -1,5 +1,4 @@
-"""Export selected output nodes of a graph to Skyrim DDS via the skydds CLI.
-"""
+"""Export selected output nodes of a graph to Skyrim DDS via the skydds CLI."""
 
 import json
 import os
@@ -98,10 +97,11 @@ class ExportItem:
         self.file_name = file_name  # final .dds name, no directory
 
 
-def export_items(graph, items, skydds_path, output_dir, alpha_mode):
-    """Computes the graph and exports each item. Returns a list of OutputResult."""
+def export_items(graph, items, skydds_path, output_dir, alpha_mode, progress=None):
+    """Computes the graph and exports each item. Returns a list of OutputResult.
+    """
     if not skydds_path or not os.path.isfile(skydds_path):
-        raise ExportError("skydds.exe not found — set its path in the plugin settings (gear icon)")
+        raise ExportError("skydds.exe not found — set its path on the Settings tab")
     if not output_dir:
         raise ExportError("no output directory chosen")
     os.makedirs(output_dir, exist_ok=True)
@@ -110,8 +110,10 @@ def export_items(graph, items, skydds_path, output_dir, alpha_mode):
     results = []
     tmp_dir = tempfile.mkdtemp(prefix="skyrim_dds_export_")
     try:
-        for item in items:
+        for index, item in enumerate(items):
             name = item.output.name
+            if progress is not None and not progress(index, len(items), name):
+                break
             prop = _texture_output_property(item.output.node)
             value = item.output.node.getPropertyValue(prop) if prop else None
             texture = value.get() if value else None

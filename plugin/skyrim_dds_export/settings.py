@@ -1,12 +1,31 @@
-"""QSettings plugin settings.
-"""
+"""QSettings plugin settings and skydds.exe discovery."""
 
 import hashlib
 import json
+import os
+import shutil
 
-from .qt import QtCore, QtWidgets
+from .qt import QtCore
 
 ALPHA_MODES = ["auto", "none", "blend", "test"]
+
+
+def bundled_skydds():
+    """skydds.exe shipped inside the plugin folder, if present."""
+    plugin_dir = os.path.dirname(os.path.abspath(__file__))
+    for candidate in (
+        os.path.join(plugin_dir, "skydds.exe"),
+        os.path.join(plugin_dir, "bin", "skydds.exe"),
+    ):
+        if os.path.isfile(candidate):
+            return candidate
+    return ""
+
+
+def resolve_skydds(configured=""):
+    if configured and os.path.isfile(configured):
+        return configured
+    return bundled_skydds() or shutil.which("skydds") or ""
 
 
 class Settings:
@@ -15,11 +34,15 @@ class Settings:
 
     @property
     def skydds_path(self):
+        """Explicit override; usually empty since the release bundles the exe."""
         return self._store.value("skydds_path", "")
 
     @skydds_path.setter
     def skydds_path(self, value):
         self._store.setValue("skydds_path", value)
+
+    def resolved_skydds(self):
+        return resolve_skydds(self.skydds_path)
 
     @staticmethod
     def _graph_key(graph_id):
@@ -38,45 +61,6 @@ class Settings:
             return {}
 
     def set_graph_state(self, graph_id, state):
-        self._store.setValue(self._graph_key(graph_id), json.dumps(state))
-
-
-class SettingsDialog(QtWidgets.QDialog):
-    """Global settings"""
-
-    def __init__(self, settings, parent=None):
-        super().__init__(parent)
-        self._settings = settings
-        self.setWindowTitle("Skyrim DDS Export Settings")
-        self.setMinimumWidth(480)
-
-        self._skydds_edit = QtWidgets.QLineEdit(settings.skydds_path)
-        browse = QtWidgets.QPushButton("...")
-        browse.clicked.connect(self._browse)
-        row = QtWidgets.QHBoxLayout()
-        row.addWidget(self._skydds_edit)
-        row.addWidget(browse)
-
-        form = QtWidgets.QFormLayout()
-        form.addRow("skydds.exe:", row)
-
-        buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addLayout(form)
-        layout.addWidget(buttons)
-
-    def _browse(self):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Locate skydds.exe", self._skydds_edit.text(), "Executables (*.exe)"
-        )
-        if path:
-            self._skydds_edit.setText(path)
-
-    def accept(self):
-        self._settings.skydds_path = self._skydds_edit.text().strip()
-        super().accept()
+        stored = dict(state, graph=graph_id)
+        self._store.setValue(self._graph_key(graph_id), json.dumps(stored))
+        self._store.sync()

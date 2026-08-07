@@ -4,16 +4,28 @@ One-button export from Substance 3D Designer to properly formatted DDS files for
 
 ## Installation
 
-Copy the skyrim_dds_export plugin to your ```Documents\Adobe\Adobe Substance 3D Designer\python\sduserplugins``` directory,
-or to wherever else your sduserplugins are located. Make sure the plugin is enabled in the Tools -> Plugin Manager.
+Extract the release zip into your ```Documents\Adobe\Adobe Substance 3D Designer\python\sduserplugins```
+directory, or wherever else your sduserplugins are located. Make sure the plugin is enabled in
+Tools -> Plugin Manager. `skydds.exe` is included inside the plugin folder.
 
 ## Usage
 <img width="558" height="359" alt="image" src="https://github.com/user-attachments/assets/bfa02257-34e5-4057-82e0-741fedb0a614" />
 
-Click the cogwheel next to SkyDDS on your toolbar to set the skydds executable location.
-When ready to export, click SkyDDS, assign outputs to the proper slots, set output directory, and export.
+Select a graph in the Explorer and click **SkyDDS** on the Explorer toolbar (or press
+Ctrl+Shift+D to export the current graph), assign outputs to the proper slots, set the output
+directory, and export.
 
-Output settings are saved per-graph.
+Output settings are saved per-graph. The Settings tab only matters if you want to point the plugin
+at a different skydds.exe than the bundled one (for developers).
+
+## Packaging a release
+
+```
+cmake --build --preset release
+uv run python tools/package_release.py --version 0.1.0
+```
+
+Produces `dist/skyrim_dds_export-<version>.zip` with the exe bundled.
 
 ## Layout
 

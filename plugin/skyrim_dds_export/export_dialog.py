@@ -1,9 +1,10 @@
-"""Per-graph export dialog
-"""
+"""Per-graph export dialog: an Export tab and a Settings tab."""
+
+import os
 
 from . import exporter
 from .qt import QtWidgets
-from .settings import ALPHA_MODES
+from .settings import ALPHA_MODES, bundled_skydds, resolve_skydds
 
 UNASSIGNED = "(unassigned)"
 
@@ -17,11 +18,31 @@ class _OutputRow:
 
 
 class ExportDialog(QtWidgets.QDialog):
-    def __init__(self, graph_name, outputs, state, parent=None):
+    def __init__(self, graph_name, outputs, state, settings, parent=None):
         """outputs: list of exporter.GraphOutput. state: stored per-graph dict."""
         super().__init__(parent)
+        self._settings = settings
         self.setWindowTitle("Skyrim DDS Export — " + graph_name)
-        self.setMinimumWidth(560)
+        self.setMinimumWidth(580)
+
+        tabs = QtWidgets.QTabWidget()
+        tabs.addTab(self._build_export_tab(graph_name, outputs, state), "Export")
+        tabs.addTab(self._build_settings_tab(), "Settings")
+
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
+        buttons.button(QtWidgets.QDialogButtonBox.Ok).setText("Export")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(tabs)
+        layout.addWidget(buttons)
+        self._update_previews()
+
+    def _build_export_tab(self, graph_name, outputs, state):
+        tab = QtWidgets.QWidget()
 
         self._dir_edit = QtWidgets.QLineEdit(state.get("output_dir", ""))
         browse = QtWidgets.QPushButton("...")
@@ -37,6 +58,9 @@ class ExportDialog(QtWidgets.QDialog):
         self._alpha_combo.addItems(ALPHA_MODES)
         alpha = state.get("alpha_mode", "auto")
         self._alpha_combo.setCurrentText(alpha if alpha in ALPHA_MODES else "auto")
+        self._alpha_combo.setToolTip(
+            "How the diffuse slot treats alpha. blend keeps full RGB (BC7); test is 1-bit (BC1a)."
+        )
 
         form = QtWidgets.QFormLayout()
         form.addRow("Output directory:", dir_row)
@@ -70,18 +94,53 @@ class ExportDialog(QtWidgets.QDialog):
             grid.addWidget(preview, row_index, 2)
             self._rows.append(_OutputRow(output, checkbox, slot_combo, preview))
 
-        buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-        )
-        buttons.button(QtWidgets.QDialogButtonBox.Ok).setText("Export")
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout(tab)
         layout.addLayout(form)
         layout.addWidget(outputs_box)
-        layout.addWidget(buttons)
-        self._update_previews()
+        layout.addStretch(1)
+        return tab
+
+    def _build_settings_tab(self):
+        tab = QtWidgets.QWidget()
+
+        self._skydds_edit = QtWidgets.QLineEdit(self._settings.skydds_path)
+        bundled = bundled_skydds()
+        self._skydds_edit.setPlaceholderText(
+            "auto: " + bundled if bundled else "not found — browse to skydds.exe"
+        )
+        self._skydds_edit.textChanged.connect(self._update_skydds_status)
+        browse = QtWidgets.QPushButton("...")
+        browse.clicked.connect(self._browse_skydds)
+        clear = QtWidgets.QPushButton("Use bundled")
+        clear.setToolTip("Clear the override and use the skydds.exe shipped with the plugin")
+        clear.clicked.connect(lambda: self._skydds_edit.setText(""))
+        row = QtWidgets.QHBoxLayout()
+        row.addWidget(self._skydds_edit)
+        row.addWidget(browse)
+        row.addWidget(clear)
+
+        self._skydds_status = QtWidgets.QLabel()
+        self._skydds_status.setWordWrap(True)
+
+        form = QtWidgets.QFormLayout()
+        form.addRow("skydds.exe override:", row)
+        form.addRow("", self._skydds_status)
+
+        layout = QtWidgets.QVBoxLayout(tab)
+        layout.addLayout(form)
+        layout.addStretch(1)
+        self._update_skydds_status()
+        return tab
+
+    def _update_skydds_status(self):
+        resolved = resolve_skydds(self._skydds_edit.text().strip())
+        if resolved:
+            self._skydds_status.setText("Using: " + resolved)
+        else:
+            self._skydds_status.setText(
+                "No skydds.exe found. Place it next to the plugin, put it on PATH, "
+                "or browse to it above."
+            )
 
     def _browse_dir(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
@@ -89,6 +148,13 @@ class ExportDialog(QtWidgets.QDialog):
         )
         if path:
             self._dir_edit.setText(path)
+
+    def _browse_skydds(self):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Locate skydds.exe", self._skydds_edit.text(), "Executables (*.exe)"
+        )
+        if path:
+            self._skydds_edit.setText(path)
 
     def _file_name(self, row):
         slot = row.slot_combo.currentText()
@@ -104,27 +170,40 @@ class ExportDialog(QtWidgets.QDialog):
             name = self._file_name(row)
             row.preview.setText("→ " + name if name else "no slot assigned")
 
+    def _warn(self, message):
+        QtWidgets.QMessageBox.warning(self, "Skyrim DDS Export", message)
+
     def accept(self):
+        self._settings.skydds_path = self._skydds_edit.text().strip()
+
         if not self._dir_edit.text().strip():
-            QtWidgets.QMessageBox.warning(self, "Skyrim DDS Export", "Choose an output directory.")
+            self._warn("Choose an output directory.")
             return
         if not self._name_edit.text().strip():
-            QtWidgets.QMessageBox.warning(self, "Skyrim DDS Export", "Choose a base filename.")
+            self._warn("Choose a base filename.")
             return
-        if not any(row.checkbox.isChecked() for row in self._rows):
-            QtWidgets.QMessageBox.warning(self, "Skyrim DDS Export", "No outputs selected.")
+        checked = [row for row in self._rows if row.checkbox.isChecked()]
+        if not checked:
+            self._warn("No outputs selected.")
             return
         unassigned = [
-            row.output.name
-            for row in self._rows
-            if row.checkbox.isChecked() and row.slot_combo.currentText() == UNASSIGNED
+            row.output.name for row in checked if row.slot_combo.currentText() == UNASSIGNED
         ]
         if unassigned:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Skyrim DDS Export",
-                "These outputs have no slot assigned:\n\n" + "\n".join(unassigned),
+            self._warn("These outputs have no slot assigned:\n\n" + "\n".join(unassigned))
+            return
+
+        names = [self._file_name(row) for row in checked]
+        duplicates = sorted({name for name in names if names.count(name) > 1})
+        if duplicates:
+            self._warn(
+                "Two or more outputs would write the same file:\n\n"
+                + "\n".join(duplicates)
+                + "\n\nGive them different slots."
             )
+            return
+        if not resolve_skydds(self._skydds_edit.text().strip()):
+            self._warn("No skydds.exe found — set it on the Settings tab.")
             return
         super().accept()
 
@@ -153,8 +232,12 @@ class ExportDialog(QtWidgets.QDialog):
 
     @property
     def output_dir(self):
-        return self._dir_edit.text().strip()
+        return os.path.normpath(self._dir_edit.text().strip())
 
     @property
     def alpha_mode(self):
         return self._alpha_combo.currentText()
+
+    @property
+    def skydds_path(self):
+        return resolve_skydds(self._skydds_edit.text().strip())
