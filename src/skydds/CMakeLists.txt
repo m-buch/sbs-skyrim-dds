@@ -12,8 +12,6 @@ add_library(skydds_core STATIC
 	ImageRGBA.h
 	Mips.cpp
 	Mips.h
-	SlotTable.cpp
-	SlotTable.h
 	StbImpl.cpp
 	${externalDir}/bc7enc_rdo/bc7enc.cpp
 	${externalDir}/bc7enc_rdo/rgbcx.cpp

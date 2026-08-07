@@ -1,7 +1,5 @@
 #include "Cli.h"
 
-#include <skydds/SlotTable.h>
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -13,24 +11,23 @@ namespace
 {
 
 const char* usage =
-	"Usage: skydds --in <file.png> --out <file.dds> --slot <slot> [options]\n"
+	"Usage: skydds --in <file.png> --out <file.dds> --format <f> --colorspace <c>\n"
+	"              --alpha <a> [options]\n"
 	"\n"
 	"Convert a source image to a Skyrim SE DDS (BC-compressed, full mip chain).\n"
 	"\n"
 	"Required:\n"
-	"  --in <file>       Source image (PNG or anything FreeImage loads).\n"
+	"  --in <file>       Source image (PNG or anything stb_image loads).\n"
 	"  --out <file>      Output DDS path.\n"
-	"  --slot <slot>     Semantic slot; format selection is internal.\n"
-	"                    Slots: %s\n"
+	"  --format <f>      bc1, bc1a (1-bit alpha), bc4 or bc7.\n"
+	"  --colorspace <c>  srgb or linear, the DDS tag is always _UNORM.\n"
+	"  --alpha <a>       none, standard (transparency) or encoded (packed data,\n"
+	"                    e.g. a specularity mask).\n"
 	"\n"
 	"Options:\n"
 	"  --game se         Target game (only 'se' is supported).\n"
 	"  --jobs <N>        Encoder threads (default: all cores).\n"
 	"  --resize pow2     Round non-power-of-two dimensions up to the next power of two.\n"
-	"  --alpha-mode <m>  Diffuse only: auto (default), none, blend, or test.\n"
-	"                    auto detects from image content; none forces the opaque\n"
-	"                    format; blend selects the RGBA format; test means the\n"
-	"                    material alpha-tests (never blends), 1-bit alpha format.\n"
 	"  --alpha-ref <x>   Accepted and ignored (reserved for alpha coverage preservation).\n"
 	"  --dry-run         Print the resolved format/settings without writing.\n"
 	"  --verbose         Print progress detail.\n"
@@ -58,12 +55,16 @@ bool parseCommandLine(Options& options, int& outExit, int argc, const char** arg
 		return argv[++i];
 	};
 
+	bool hasFormat = false;
+	bool hasColorSpace = false;
+	bool hasAlpha = false;
+
 	for (int i = 1; i < argc; ++i)
 	{
 		const char* arg = argv[i];
 		if (std::strcmp(arg, "--help") == 0 || std::strcmp(arg, "-h") == 0)
 		{
-			std::printf(usage, slotNames());
+			std::printf("%s", usage);
 			outExit = 0;
 			return false;
 		}
@@ -80,13 +81,6 @@ bool parseCommandLine(Options& options, int& outExit, int argc, const char** arg
 			if (!v)
 				return fail(outExit, "--out requires a value");
 			options.out = v;
-		}
-		else if (std::strcmp(arg, "--slot") == 0)
-		{
-			const char* v = value(i);
-			if (!v)
-				return fail(outExit, "--slot requires a value");
-			options.slot = v;
 		}
 		else if (std::strcmp(arg, "--game") == 0)
 		{
@@ -111,21 +105,50 @@ bool parseCommandLine(Options& options, int& outExit, int argc, const char** arg
 				return fail(outExit, "--resize only supports 'pow2'");
 			options.resizePow2 = true;
 		}
-		else if (std::strcmp(arg, "--alpha-mode") == 0)
+		else if (std::strcmp(arg, "--format") == 0)
 		{
 			const char* v = value(i);
 			if (!v)
-				return fail(outExit, "--alpha-mode requires a value");
-			if (std::strcmp(v, "auto") == 0)
-				options.alphaMode = AlphaMode::Auto;
-			else if (std::strcmp(v, "none") == 0)
-				options.alphaMode = AlphaMode::None;
-			else if (std::strcmp(v, "blend") == 0)
-				options.alphaMode = AlphaMode::Blend;
-			else if (std::strcmp(v, "test") == 0)
-				options.alphaMode = AlphaMode::Test;
+				return fail(outExit, "--format requires a value");
+			if (std::strcmp(v, "bc1") == 0)
+				options.format = BlockFormat::BC1;
+			else if (std::strcmp(v, "bc1a") == 0)
+				options.format = BlockFormat::BC1a;
+			else if (std::strcmp(v, "bc4") == 0)
+				options.format = BlockFormat::BC4;
+			else if (std::strcmp(v, "bc7") == 0)
+				options.format = BlockFormat::BC7;
 			else
-				return fail(outExit, "--alpha-mode must be auto, none, blend, or test; got", v);
+				return fail(outExit, "--format must be bc1, bc1a, bc4 or bc7; got", v);
+			hasFormat = true;
+		}
+		else if (std::strcmp(arg, "--colorspace") == 0)
+		{
+			const char* v = value(i);
+			if (!v)
+				return fail(outExit, "--colorspace requires a value");
+			if (std::strcmp(v, "srgb") == 0)
+				options.srgb = true;
+			else if (std::strcmp(v, "linear") == 0)
+				options.srgb = false;
+			else
+				return fail(outExit, "--colorspace must be srgb or linear; got", v);
+			hasColorSpace = true;
+		}
+		else if (std::strcmp(arg, "--alpha") == 0)
+		{
+			const char* v = value(i);
+			if (!v)
+				return fail(outExit, "--alpha requires a value");
+			if (std::strcmp(v, "none") == 0)
+				options.alphaKind = AlphaKind::None;
+			else if (std::strcmp(v, "standard") == 0)
+				options.alphaKind = AlphaKind::Standard;
+			else if (std::strcmp(v, "encoded") == 0)
+				options.alphaKind = AlphaKind::Encoded;
+			else
+				return fail(outExit, "--alpha must be none, standard or encoded; got", v);
+			hasAlpha = true;
 		}
 		else if (std::strcmp(arg, "--alpha-ref") == 0)
 		{
@@ -145,8 +168,12 @@ bool parseCommandLine(Options& options, int& outExit, int argc, const char** arg
 		return fail(outExit, "--in is required");
 	if (options.out.empty())
 		return fail(outExit, "--out is required");
-	if (options.slot.empty())
-		return fail(outExit, "--slot is required");
+	if (!hasFormat)
+		return fail(outExit, "--format is required");
+	if (!hasColorSpace)
+		return fail(outExit, "--colorspace is required");
+	if (!hasAlpha)
+		return fail(outExit, "--alpha is required");
 	if (options.game != "se")
 		return fail(outExit, "only '--game se' is supported; got", options.game.c_str());
 	return true;

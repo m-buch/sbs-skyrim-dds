@@ -1,6 +1,5 @@
 """Export selected output nodes of a graph to Skyrim DDS via the skydds CLI."""
 
-import json
 import os
 import shutil
 import subprocess
@@ -31,22 +30,6 @@ class OutputResult:
         self.name = name
         self.ok = ok
         self.message = message
-
-
-def _slots_data():
-    path = os.path.join(os.path.dirname(__file__), "slots.json")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)["slots"]
-
-
-def slot_names():
-    return list(_slots_data().keys())
-
-
-def canonical_suffix(slot):
-    """The suffix appended to the base filename for a slot (diffuse: none)."""
-    suffixes = _slots_data()[slot]["suffixes"]
-    return suffixes[0] if suffixes else ""
 
 
 def _output_name(node):
@@ -91,15 +74,14 @@ def gather_outputs(graph):
 class ExportItem:
     """One output selected for export in the dialog."""
 
-    def __init__(self, output, slot, file_name):
+    def __init__(self, output, preset, file_name):
         self.output = output
-        self.slot = slot
+        self.preset = preset
         self.file_name = file_name  # final .dds name, no directory
 
 
-def export_items(graph, items, skydds_path, output_dir, alpha_mode, progress=None):
-    """Computes the graph and exports each item. Returns a list of OutputResult.
-    """
+def export_items(graph, items, skydds_path, output_dir, progress=None):
+    """Computes the graph and exports each item. Returns a list of OutputResult."""
     if not skydds_path or not os.path.isfile(skydds_path):
         raise ExportError("skydds.exe not found — set its path on the Settings tab")
     if not output_dir:
@@ -125,9 +107,19 @@ def export_items(graph, items, skydds_path, output_dir, alpha_mode, progress=Non
             texture.save(png)
 
             dds = os.path.join(output_dir, item.file_name)
-            command = [skydds_path, "--in", png, "--out", dds, "--slot", item.slot]
-            if item.slot == "diffuse" and alpha_mode != "auto":
-                command += ["--alpha-mode", alpha_mode]
+            command = [
+                skydds_path,
+                "--in",
+                png,
+                "--out",
+                dds,
+                "--format",
+                item.preset["format"],
+                "--colorspace",
+                item.preset["colorspace"],
+                "--alpha",
+                item.preset["alpha"],
+            ]
 
             creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
             proc = subprocess.run(
