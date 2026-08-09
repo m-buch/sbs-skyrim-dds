@@ -11,10 +11,12 @@ const char* alphaName(skydds::AlphaKind kind)
 {
 	switch (kind)
 	{
+		case skydds::AlphaKind::Test:
+			return "test";
+		case skydds::AlphaKind::Blend:
+			return "blend";
 		case skydds::AlphaKind::Encoded:
 			return "encoded";
-		case skydds::AlphaKind::Standard:
-			return "standard";
 		default:
 			return "none";
 	}
@@ -35,6 +37,7 @@ int main(int argc, const char** argv)
 	request.format = options.format;
 	request.srgb = options.srgb;
 	request.alphaKind = options.alphaKind;
+	request.alphaRef = options.alphaRef;
 	request.resizePow2 = options.resizePow2;
 	request.dryRun = options.dryRun;
 	request.threads = options.jobs;
@@ -53,6 +56,8 @@ int main(int argc, const char** argv)
 		std::printf("format: %s (%s)\n", skydds::formatName(options.format),
 			options.srgb ? "sRGB data, _UNORM tag" : "linear");
 		std::printf("alpha:  %s\n", alphaName(options.alphaKind));
+		if (options.alphaKind == skydds::AlphaKind::Test)
+			std::printf("cover:  preserved at alpha ref %.3f\n", options.alphaRef);
 		std::printf("size:   %ux%u, %u mip levels\n", result.width, result.height,
 			result.mipLevels);
 	}

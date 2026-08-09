@@ -38,7 +38,7 @@ ExportResult exportTexture(const ExportRequest& request)
 	if (!image.isValid())
 		return failure("failed to load '" + request.inputPath + "'");
 
-	bool alphaWeighted = request.alphaKind == AlphaKind::Standard;
+	bool alphaWeighted = alphaIsTransparency(request.alphaKind);
 	if (request.resizePow2)
 	{
 		unsigned int width = nextPow2(image.width);
@@ -61,9 +61,14 @@ ExportResult exportTexture(const ExportRequest& request)
 		return result;
 	}
 
-	alphaWeighted = alphaWeighted && formatHasAlpha(request.format);
+	bool keepsAlpha = formatHasAlpha(request.format);
+	alphaWeighted = alphaWeighted && keepsAlpha;
 	std::vector<ImageRGBA> chain =
 		buildMipChain(std::move(image), result.mipLevels, request.srgb, alphaWeighted);
+	// Alpha cutout loses coverage on higher mip levels, so bias it to preserve
+	if (request.alphaKind == AlphaKind::Test && keepsAlpha)
+		preserveAlphaCoverage(chain, request.alphaRef);
+
 	std::vector<EncodedLevel> levels;
 	levels.reserve(chain.size());
 	for (const ImageRGBA& mip : chain)

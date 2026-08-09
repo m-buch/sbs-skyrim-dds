@@ -50,7 +50,6 @@ def test_normalize_fills_missing_fields():
     assert result["colorspace"] in presets.COLORSPACES
     assert result["alpha"] in presets.ALPHA_KINDS
 
-
 def test_normalize_replaces_invalid_values():
     result = presets.normalize(
         {"name": "x", "format": "astc", "colorspace": "cmyk", "alpha": "maybe"}

@@ -18,7 +18,6 @@ SETTING_COLUMNS = (
 
 
 class NoScrollComboBox(QtWidgets.QComboBox):
-
     def wheelEvent(self, event):
         event.ignore()
 

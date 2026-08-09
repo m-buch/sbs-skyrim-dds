@@ -1,13 +1,13 @@
 {
   "_comment": "Default presets (CK slots 0-7 plus msn). Users can edit these and add their own in the plugin's Settings tab.",
   "presets": [
-    { "name": "diffuse",     "suffix": "",     "format": "bc1", "colorspace": "srgb",   "alpha": "standard" },
+    { "name": "diffuse",     "suffix": "",     "format": "bc1", "colorspace": "srgb",   "alpha": "test" },
     { "name": "normal",      "suffix": "_n",   "format": "bc7", "colorspace": "linear", "alpha": "encoded" },
     { "name": "glow",        "suffix": "_g",   "format": "bc1", "colorspace": "srgb",   "alpha": "none" },
     { "name": "parallax",    "suffix": "_p",   "format": "bc4", "colorspace": "linear", "alpha": "none" },
     { "name": "environment", "suffix": "_e",   "format": "bc1", "colorspace": "srgb",   "alpha": "none" },
     { "name": "envmask",     "suffix": "_m",   "format": "bc4", "colorspace": "linear", "alpha": "none" },
-    { "name": "multilayer",  "suffix": "_i",   "format": "bc7", "colorspace": "srgb",   "alpha": "standard" },
+    { "name": "multilayer",  "suffix": "_i",   "format": "bc7", "colorspace": "srgb",   "alpha": "blend" },
     { "name": "backlight",   "suffix": "_b",   "format": "bc1", "colorspace": "linear", "alpha": "none" },
     { "name": "msn",         "suffix": "_msn", "format": "bc7", "colorspace": "linear", "alpha": "none" }
   ]

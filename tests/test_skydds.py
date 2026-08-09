@@ -100,17 +100,13 @@ def test_normal_map_settings(images, tmp_path):
 
 
 def test_diffuse_settings(images, tmp_path):
-    header = convert(images, tmp_path, "opaque.png", "bc1", "srgb", "standard")
+    header = convert(images, tmp_path, "opaque.png", "bc1", "srgb", "blend")
     assert header["dxgi"] == DXGI_BC1_UNORM
 
-
-def test_format_is_never_inferred_from_alpha(images, tmp_path):
-    header = convert(images, tmp_path, "translucent.png", "bc1", "srgb", "standard")
-    assert header["dxgi"] == DXGI_BC1_UNORM
 
 
 def test_bc1a_punchthrough(images, tmp_path):
-    header = convert(images, tmp_path, "translucent.png", "bc1a", "srgb", "standard")
+    header = convert(images, tmp_path, "translucent.png", "bc1a", "srgb", "blend")
     assert header["dxgi"] == DXGI_BC1_UNORM  # BC1a shares the BC1_UNORM tag
 
 
@@ -121,7 +117,7 @@ def test_bc4_single_channel(images, tmp_path):
 
 
 def test_resize_pow2(images, tmp_path):
-    header = convert(images, tmp_path, "npot.png", "bc1", "srgb", "standard", "--resize", "pow2")
+    header = convert(images, tmp_path, "npot.png", "bc1", "srgb", "blend", "--resize", "pow2")
     assert (header["width"], header["height"]) == (512, 512)
 
 
@@ -137,7 +133,7 @@ def test_dry_run_writes_nothing(images, tmp_path):
         "--colorspace",
         "srgb",
         "--alpha",
-        "standard",
+        "test",
         "--dry-run",
     )
     assert result.returncode == 0, result.stderr
@@ -168,8 +164,8 @@ def test_dry_run_reports_resolved_settings(images, tmp_path):
 @pytest.mark.parametrize(
     "missing",
     [
-        ("--colorspace", "srgb", "--alpha", "standard"),
-        ("--format", "bc1", "--alpha", "standard"),
+        ("--colorspace", "srgb", "--alpha", "blend"),
+        ("--format", "bc1", "--alpha", "blend"),
         ("--format", "bc1", "--colorspace", "srgb"),
     ],
 )
@@ -191,6 +187,51 @@ def test_bad_format_value_fails(images, tmp_path):
         "srgb",
         "--alpha",
         "none",
+    )
+    assert result.returncode == 2
+
+
+def test_alpha_ref_accepted_with_alpha_test(images, tmp_path):
+    header = convert(
+        images, tmp_path, "translucent.png", "bc7", "srgb", "test", "--alpha-ref", "0.35"
+    )
+    assert header["dxgi"] == DXGI_BC7_UNORM
+
+
+def test_dry_run_reports_coverage_for_alpha_test(images, tmp_path):
+    out = tmp_path / "out.dds"
+    result = run(
+        "--in",
+        str(images / "translucent.png"),
+        "--out",
+        str(out),
+        "--format",
+        "bc7",
+        "--colorspace",
+        "srgb",
+        "--alpha",
+        "test",
+        "--dry-run",
+    )
+    assert result.returncode == 0, result.stderr
+    assert "cover" in result.stdout
+
+
+@pytest.mark.parametrize("bad", ["0", "1", "-0.5", "1.5", "half"])
+def test_alpha_ref_range_is_validated(images, tmp_path, bad):
+    result = run(
+        "--in",
+        str(images / "translucent.png"),
+        "--out",
+        str(tmp_path / "out.dds"),
+        "--format",
+        "bc7",
+        "--colorspace",
+        "srgb",
+        "--alpha",
+        "test",
+        "--alpha-ref",
+        bad,
     )
     assert result.returncode == 2
 
