@@ -21,14 +21,19 @@ const char* usage =
 	"  --out <file>      Output DDS path.\n"
 	"  --format <f>      bc1, bc1a (1-bit alpha), bc4 or bc7.\n"
 	"  --colorspace <c>  srgb or linear, the DDS tag is always _UNORM.\n"
-	"  --alpha <a>       none, standard (transparency) or encoded (packed data,\n"
-	"                    e.g. a specularity mask).\n"
+	"  --alpha <a>       What the alpha channel means:\n"
+	"                      none     no meaningful alpha\n"
+	"                      test     alpha tested cutout with premult and coverage bias\n"
+	"                      blend    alpha blended transparency with premult\n"
+	"                      encoded  packed data, e.g. a specularity mask.\n"
 	"\n"
 	"Options:\n"
 	"  --game se         Target game (only 'se' is supported).\n"
 	"  --jobs <N>        Encoder threads (default: all cores).\n"
 	"  --resize pow2     Round non-power-of-two dimensions up to the next power of two.\n"
-	"  --alpha-ref <x>   Accepted and ignored (reserved for alpha coverage preservation).\n"
+	"  --alpha-ref <x>   Alpha test threshold coverage is preserved against, 0..1\n"
+	"                    (default 0.5). Match the material's threshold. '--alpha test'\n"
+	"                    only.\n"
 	"  --dry-run         Print the resolved format/settings without writing.\n"
 	"  --verbose         Print progress detail.\n"
 	"  --help            Show this help.\n";
@@ -58,6 +63,7 @@ bool parseCommandLine(Options& options, int& outExit, int argc, const char** arg
 	bool hasFormat = false;
 	bool hasColorSpace = false;
 	bool hasAlpha = false;
+	bool hasAlphaRef = false;
 
 	for (int i = 1; i < argc; ++i)
 	{
@@ -142,19 +148,25 @@ bool parseCommandLine(Options& options, int& outExit, int argc, const char** arg
 				return fail(outExit, "--alpha requires a value");
 			if (std::strcmp(v, "none") == 0)
 				options.alphaKind = AlphaKind::None;
-			else if (std::strcmp(v, "standard") == 0)
-				options.alphaKind = AlphaKind::Standard;
+			else if (std::strcmp(v, "test") == 0)
+				options.alphaKind = AlphaKind::Test;
+			else if (std::strcmp(v, "blend") == 0)
+				options.alphaKind = AlphaKind::Blend;
 			else if (std::strcmp(v, "encoded") == 0)
 				options.alphaKind = AlphaKind::Encoded;
 			else
-				return fail(outExit, "--alpha must be none, standard or encoded; got", v);
+				return fail(outExit, "--alpha must be none, test, blend or encoded; got", v);
 			hasAlpha = true;
 		}
 		else if (std::strcmp(arg, "--alpha-ref") == 0)
 		{
-			// for alpha coverage preservation later
-			if (!value(i))
-				return fail(outExit, "--alpha-ref requires a value");
+			const char* v = value(i);
+			char* end = nullptr;
+			double ref = v ? std::strtod(v, &end) : 0.0;
+			if (!v || *end != '\0' || ref <= 0.0 || ref >= 1.0)
+				return fail(outExit, "--alpha-ref requires a value between 0 and 1");
+			options.alphaRef = static_cast<float>(ref);
+			hasAlphaRef = true;
 		}
 		else if (std::strcmp(arg, "--dry-run") == 0)
 			options.dryRun = true;
@@ -174,6 +186,11 @@ bool parseCommandLine(Options& options, int& outExit, int argc, const char** arg
 		return fail(outExit, "--colorspace is required");
 	if (!hasAlpha)
 		return fail(outExit, "--alpha is required");
+	if (hasAlphaRef && options.alphaKind != AlphaKind::Test)
+	{
+		return fail(outExit, "--alpha-ref only applies to '--alpha test': it sets the alpha"
+			" test threshold that coverage is preserved against");
+	}
 	if (options.game != "se")
 		return fail(outExit, "only '--game se' is supported; got", options.game.c_str());
 	return true;

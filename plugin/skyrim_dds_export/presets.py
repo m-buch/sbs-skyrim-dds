@@ -1,12 +1,11 @@
-"""Export presets
-"""
+"""Export presets"""
 
 import json
 import os
 
 FORMATS = ["bc1", "bc1a", "bc4", "bc7"]
 COLORSPACES = ["srgb", "linear"]
-ALPHA_KINDS = ["none", "standard", "encoded"]
+ALPHA_KINDS = ["none", "test", "blend", "encoded"]
 
 FIELDS = ("name", "suffix", "format", "colorspace", "alpha")
 
