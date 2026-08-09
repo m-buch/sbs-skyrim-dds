@@ -14,6 +14,7 @@ struct ExportRequest
 	BlockFormat format = BlockFormat::BC7;
 	bool srgb = false;
 	AlphaKind alphaKind = AlphaKind::None;
+	float alphaRef = 0.5f;
 	bool resizePow2 = false;
 	bool dryRun = false;
 	unsigned int threads = 0; // 0 = use all

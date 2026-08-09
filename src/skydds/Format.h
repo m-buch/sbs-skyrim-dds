@@ -15,10 +15,16 @@ enum class BlockFormat
 
 enum class AlphaKind
 {
-	None,     // no alpha
-	Standard, // transparency
-	Encoded   // data packed (f.e. specularity)
+	None,    // no meaningful alpha
+	Test,    // alpha tested cutout: weighted filtering + coverage preservation
+	Blend,   // alpha blended transparency: weighted filtering
+	Encoded  // packed data (f.e. specularity)
 };
+
+inline bool alphaIsTransparency(AlphaKind kind)
+{
+	return kind == AlphaKind::Test || kind == AlphaKind::Blend;
+}
 
 inline unsigned int blockBytes(BlockFormat format)
 {

@@ -16,6 +16,7 @@ struct Options
 	BlockFormat format = BlockFormat::BC7;
 	bool srgb = false;
 	AlphaKind alphaKind = AlphaKind::None;
+	float alphaRef = 0.5f; // alpha test threshold, used with AlphaKind::Test
 	bool resizePow2 = false;
 	bool dryRun = false;
 	bool verbose = false;
